@@ -1,2 +1,0 @@
-import { serve } from 'https://deno.land/std@0.224.0/http/server.ts';
-serve(async req=>{if(req.method!=='POST')return new Response('Method Not Allowed',{status:405});const {orderId}=await req.json();if(!orderId)return Response.json({error:'orderId required'},{status:400});return Response.json({ok:true,orderId,assigned:false,message:'Dispatch engine scaffold ready for production scoring rules.'})});
