@@ -18,3 +18,39 @@ create table if not exists public.support_tickets(id uuid primary key default ge
 create table if not exists public.support_messages(id bigint generated always as identity primary key,ticket_id uuid not null references public.support_tickets(id) on delete cascade,sender_id uuid references public.profiles(id),message text not null,created_at timestamptz default now());
 create table if not exists public.wallet_transactions(id uuid primary key default gen_random_uuid(),user_id uuid references public.profiles(id),order_id uuid references public.orders(id),amount integer not null,type text not null,reference text,created_at timestamptz default now());
 create index if not exists idx_orders_customer on public.orders(customer_id,created_at desc);create index if not exists idx_orders_restaurant on public.orders(restaurant_id,status,created_at desc);create index if not exists idx_locations_order on public.driver_locations(order_id,created_at desc);create index if not exists idx_menu_restaurant on public.menu_items(restaurant_id,is_available);
+
+
+-- V10 security baseline: enable RLS on sensitive operational tables.
+alter table public.profiles enable row level security;
+alter table public.addresses enable row level security;
+alter table public.orders enable row level security;
+alter table public.order_items enable row level security;
+alter table public.order_events enable row level security;
+alter table public.driver_locations enable row level security;
+alter table public.reviews enable row level security;
+alter table public.support_tickets enable row level security;
+alter table public.support_messages enable row level security;
+
+-- These policies are intentionally conservative starters. Review with your production roles before launch.
+drop policy if exists "profiles own read" on public.profiles;
+drop policy if exists "profiles own update" on public.profiles;
+drop policy if exists "addresses own access" on public.addresses;
+drop policy if exists "orders customer read" on public.orders;
+drop policy if exists "order items customer read" on public.order_items;
+drop policy if exists "order events customer read" on public.order_events;
+drop policy if exists "driver own locations" on public.driver_locations;
+drop policy if exists "reviews own read" on public.reviews;
+drop policy if exists "reviews own create" on public.reviews;
+drop policy if exists "support own tickets" on public.support_tickets;
+drop policy if exists "support own messages" on public.support_messages;
+create policy "profiles own read" on public.profiles for select using (auth.uid() = id);
+create policy "profiles own update" on public.profiles for update using (auth.uid() = id);
+create policy "addresses own access" on public.addresses for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+create policy "orders customer read" on public.orders for select using (auth.uid() = customer_id);
+create policy "order items customer read" on public.order_items for select using (exists(select 1 from public.orders o where o.id=order_id and o.customer_id=auth.uid()));
+create policy "order events customer read" on public.order_events for select using (exists(select 1 from public.orders o where o.id=order_id and o.customer_id=auth.uid()));
+create policy "driver own locations" on public.driver_locations for all using (auth.uid() = driver_id) with check (auth.uid() = driver_id);
+create policy "reviews own read" on public.reviews for select using (auth.uid() = customer_id);
+create policy "reviews own create" on public.reviews for insert with check (auth.uid() = customer_id);
+create policy "support own tickets" on public.support_tickets for all using (auth.uid() = customer_id) with check (auth.uid() = customer_id);
+create policy "support own messages" on public.support_messages for select using (exists(select 1 from public.support_tickets t where t.id=ticket_id and t.customer_id=auth.uid()));
