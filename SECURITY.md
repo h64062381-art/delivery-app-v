@@ -1,10 +1,7 @@
-# Security checklist
-- Never put payment merchant secrets in `app.js` or browser storage.
-- Keep only Supabase anon/publishable keys in the client; enforce RLS on every table.
-- Verify payment webhooks server-side and make them idempotent.
-- Rate-limit login, coupons, support and order creation.
-- Validate prices server-side; never trust totals submitted by the browser.
-- Use Postgres transactions for order creation, coupon redemption and refunds.
-- Store only minimum customer data and define retention/deletion policies.
-- Require verified roles for admin, restaurant and driver dashboards.
-- Use signed upload URLs for restaurant/menu media.
+# Security
+- Never commit Supabase Service Role Key.
+- Never put payment provider secrets in browser code.
+- Keep payment creation and webhook verification in Edge Functions.
+- Review RLS policies before production launch.
+- Verify driver identity/documents before enabling live dispatch.
+- Add rate limits, fraud checks and audit review before opening public traffic.
